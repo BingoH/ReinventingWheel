@@ -1,6 +1,9 @@
 #include <fstream>
 #include <iostream>
 #include <getopt.h>
+#include "psdca.h"
+#include "data_type.h"
+#include "util.h"
 #include "config.h"
 
 using namespace std;
@@ -27,7 +30,7 @@ void train(
     size_t max_iter, double tol, 
     size_t num_thread) {
 
-    Config config;
+    Config<ProxSdca> config;
     config.train_file_path = train_file_path;
     config.output_model_file_path = output_model_file_path;
 
@@ -37,6 +40,37 @@ void train(
     config.algorithm.l1 = l1;
     config.algorithm.l2 = l2;
     config.algorithm.gam = gam;
+    config.algorithm.tol = tol;
+
+    // load training data
+    SparseMatrix<DataType> X_train;
+    std::vector<DataType> y_train;
+
+    std::random_device rd;
+    LoadLibsvm(X_train, y_train, config_.train_file_path);
+    ShuffleData(X_train, y_train, std::mt19937(rd()));
+
+    // \bar{x}_i = x_i * sign(y_i)
+    for (size_t i = 0; i < y_train.size(); ++i) {
+        if (y_train[i] < 0) {
+            for (auto& v : X_train.values[i]) {
+                v *= -1;
+            }
+        }
+    }
+
+    config.num_feature = X_train.cols();
+    config.algorithm.num_all_sample = X_train.rows();
+
+    config.algorithm.tables = {
+        {"theta", { config.algorithm.num_all_sample }},
+        {"W", { config.num_feature }},
+        {"XTtheta", { config.num_feature }}};
+
+    Model<ProxSdca> model;
+    model.Initialize(config);
+    model.Train();
+    model.Save();
 }
 }
 
@@ -102,7 +136,7 @@ int main(int argc, char *argv[])
         printUsage();
         exit(1);
     }
-        
+
     train(train_file_path, output_model_file_path, l1, l2, gam, max_iter, tol, num_thread);
     return 0;
 }

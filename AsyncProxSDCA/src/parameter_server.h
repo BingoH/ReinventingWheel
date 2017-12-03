@@ -33,7 +33,7 @@ public:
     }
 
     // Get the parameter from a table by a given index
-    bool Get(const std::string& table_name, size_t, idx, T* value) const {
+    bool Get(const std::string& table_name, size_t idx, T* value) const {
         auto iter = tables_.find(table_name);
         if (iter == tables_.end()) {
             return false;

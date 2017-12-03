@@ -11,10 +11,10 @@ public:
     std::string output_model_file_path;
 
     size_t num_thread;
+    size_t num_feature;
     size_t max_iter;
 
     Algorithm algorithm;
-    
 };
 
 #endif
